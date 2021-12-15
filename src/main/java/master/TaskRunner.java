@@ -1,4 +1,4 @@
-package Master;
+package master;
 
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;

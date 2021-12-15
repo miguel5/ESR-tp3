@@ -1,4 +1,4 @@
-package Master;
+package master;
 
 public class Constants {
     public static final int PORT = 12345;

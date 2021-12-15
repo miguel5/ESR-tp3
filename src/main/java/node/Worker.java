@@ -1,7 +1,7 @@
-package Node;
+package node;
 
-import Master.Constants;
-import Master.KeepAlivePacket;
+import master.Constants;
+import master.KeepAlivePacket;
 
 import java.io.IOException;
 import java.net.*;

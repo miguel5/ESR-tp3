@@ -1,6 +1,6 @@
-package Node;
+package node;
 
-import Master.KeepAlivePacket;
+import master.KeepAlivePacket;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
