@@ -3,17 +3,24 @@ package master;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.util.*;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
 
 import com.google.gson.Gson;
 import com.google.gson.stream.JsonReader;
+import node.KeepAliveSender;
 
 public class NodeManager {
     private Map<String, List<String>> topology;
     private Map<String, List<String>> nodesStatus;
+    private Map<String, ScheduledFuture<?>> countdowns;
 
     public NodeManager() throws FileNotFoundException {
         this.topology = new HashMap<>();
         this.nodesStatus = new HashMap<>();
+        this.countdowns = new HashMap<>();
         this.loadTopologyConfig();
     }
 
@@ -48,6 +55,21 @@ public class NodeManager {
             System.out.println(entry.getKey() + ":" + entry.getValue().toString());
         }
          */
+    }
+
+    public void startCountdown(String nodeId) {
+
+        if(this.countdowns.containsKey(nodeId))
+            this.countdowns.get(nodeId).cancel(true);
+
+        final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
+        this.countdowns.put(nodeId, scheduler.schedule(new Runnable() {
+            @Override
+            public void run() {
+                changeStatus(nodeId);
+                System.out.println("[MASTER] Node " + nodeId + " went offline");
+            }
+        }, 7, TimeUnit.SECONDS));
     }
 }
 
