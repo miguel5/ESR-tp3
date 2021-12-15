@@ -5,9 +5,10 @@ import java.net.SocketException;
 
 public class Main {
     public static void main(String[] args) throws SocketException {
-        new Thread(new TaskRunner()).start();
+
         try {
             NodeManager nm = new NodeManager();
+            new Thread(new TaskRunner(nm)).start();
         } catch (FileNotFoundException e) {
             e.printStackTrace();
             System.out.println(e.getMessage());

@@ -8,8 +8,8 @@ import com.google.gson.Gson;
 import com.google.gson.stream.JsonReader;
 
 public class NodeManager {
-    private HashMap<String, ArrayList<String>> topology;
-    private HashMap<String, Set<String>> nodesStatus;
+    private Map<String, List<String>> topology;
+    private Map<String, List<String>> nodesStatus;
 
     public NodeManager() throws FileNotFoundException {
         this.topology = new HashMap<>();
@@ -27,20 +27,21 @@ public class NodeManager {
             this.nodesStatus.remove(nodeId);
             status = false;
         } else {
-            this.nodesStatus.put(nodeId, new HashSet<>());
+            this.nodesStatus.put(nodeId, new ArrayList());
             status = true;
         }
         return status;
     }
 
-    public Set<String> getNeighbours(String nodeId) {
-        return this.nodesStatus.get(nodeId);
+    //DEBUG: Change to nodesStatus
+    public List<String> getNeighbours(String nodeId) {
+        return this.topology.get(nodeId);
     }
 
     private void loadTopologyConfig() throws FileNotFoundException {
         Gson gson = new Gson();
         JsonReader reader = new JsonReader(new FileReader("./src/main/resources/topology.json"));
-        HashMap<String, ArrayList<String>> data = gson.fromJson(reader, HashMap.class);
+        HashMap<String, List<String>> data = gson.fromJson(reader, HashMap.class);
         this.topology = data;
         /*
         for (Map.Entry<String, ArrayList<String>> entry : data.entrySet()) {

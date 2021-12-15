@@ -6,12 +6,14 @@ import master.KeepAlivePacket;
 import java.io.IOException;
 import java.net.*;
 
-public class Worker implements Runnable{
+public class KeepAliveSender implements Runnable{
 
     private DatagramSocket datagramSocket;
+    private String nodeId;
 
-    public Worker() throws SocketException {
+    public KeepAliveSender(String nodeId) throws SocketException {
         this.datagramSocket = new DatagramSocket();
+        this.nodeId = nodeId;
     }
 
     @Override
@@ -20,12 +22,12 @@ public class Worker implements Runnable{
         try {
             address = InetAddress.getByName("localhost");
 
-        KeepAlivePacket p = new KeepAlivePacket("1");
-        byte[] x = new byte[0];
-        x = p.toBytes();
+            KeepAlivePacket p = new KeepAlivePacket(nodeId);
+            byte[] x = new byte[0];
+            x = p.toBytes();
 
-        DatagramPacket packet = new DatagramPacket(x,x.length, address, 12345);
-        this.datagramSocket.send(packet);
+            DatagramPacket packet = new DatagramPacket(x,x.length, address, Constants.KEEP_ALIVE_PORT);
+            this.datagramSocket.send(packet);
 
         } catch (IOException e) {
             e.printStackTrace();

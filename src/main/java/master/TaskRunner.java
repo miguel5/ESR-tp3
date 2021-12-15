@@ -6,14 +6,16 @@ import java.net.SocketException;
 
 public class TaskRunner implements Runnable {
     private DatagramSocket datagramSocket;
+    private NodeManager nm;
 
-    public TaskRunner() throws SocketException {
-        this.datagramSocket = new DatagramSocket(Constants.PORT);
+    public TaskRunner(NodeManager nm) throws SocketException {
+        this.datagramSocket = new DatagramSocket(Constants.KEEP_ALIVE_PORT);
+        this.nm = nm;
     }
 
     @Override
     public void run() {
-        byte[] incomingData = new byte[Constants.MaxPacketSize];
+        byte[] incomingData = new byte[Constants.MAX_PACKET_SIZE];
 
         while (true) {
             try {
@@ -21,7 +23,24 @@ public class TaskRunner implements Runnable {
                 this.datagramSocket.receive(incomingPacket);
                 if(incomingPacket != null){
                     KeepAlivePacket keepAlivePacket = KeepAlivePacket.bytesToObject(incomingPacket.getData());
-                    System.out.println(keepAlivePacket.getNodeId());
+                    String nodeId = keepAlivePacket.getNodeId();
+
+                    if (nm.isOnline(nodeId)){
+                        // reset timer
+                        System.out.println("[MASTER] Node " + nodeId + " is Online");
+                    }
+                    else{
+                        System.out.println("[MASTER] Node " + nodeId + " woke up");
+
+                        nm.changeStatus(nodeId);
+
+                        NeighboursPacket p = new NeighboursPacket(nm.getNeighbours(nodeId));
+                        byte[] x = new byte[0];
+                        x = p.toBytes();
+
+                        DatagramPacket packet = new DatagramPacket(x,x.length, incomingPacket.getAddress(), Constants.NEIGHBOURS_PORT);
+                        this.datagramSocket.send(packet);
+                    }
                 }
             } catch(Exception e) {
                 System.out.println(e.getMessage());

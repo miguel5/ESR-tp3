@@ -1,6 +1,7 @@
 package master;
 
 public class Constants {
-    public static final int PORT = 12345;
-    public static final int MaxPacketSize = 4000;
+    public static final int KEEP_ALIVE_PORT = 10000;
+    public static final int NEIGHBOURS_PORT = 10001;
+    public static final int MAX_PACKET_SIZE = 4000;
 }
