@@ -11,7 +11,7 @@ public class Main {
 
     public static void main(String[] args) throws IOException {
 
-        final String nodeId = "O5";
+        final String nodeId = args[0];
 
         final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
         scheduler.scheduleAtFixedRate(new KeepAliveSender(nodeId), 0, 5, TimeUnit.SECONDS);

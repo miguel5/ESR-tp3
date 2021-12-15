@@ -27,7 +27,9 @@ public class KeepAliveSender implements Runnable{
             x = p.toBytes();
 
             DatagramPacket packet = new DatagramPacket(x,x.length, address, Constants.KEEP_ALIVE_PORT);
-            this.datagramSocket.send(packet);
+
+            for(int i = 0; i < 3; i++)
+                this.datagramSocket.send(packet);
 
         } catch (IOException e) {
             e.printStackTrace();
