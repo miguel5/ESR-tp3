@@ -10,18 +10,25 @@ import java.util.concurrent.TimeUnit;
 
 import com.google.gson.Gson;
 import com.google.gson.stream.JsonReader;
-import node.KeepAliveSender;
+
+import org.jgrapht.Graph;
+import org.jgrapht.alg.shortestpath.DijkstraShortestPath;
+import org.jgrapht.graph.*;
 
 public class NodeManager {
     private Map<String, List<String>> topology;
     private Map<String, List<String>> nodesStatus;
     private Map<String, ScheduledFuture<?>> countdowns;
+    private Graph<String, DefaultEdge> graph;
+    
 
     public NodeManager() throws FileNotFoundException {
         this.topology = new HashMap<>();
         this.nodesStatus = new HashMap<>();
         this.countdowns = new HashMap<>();
+        this.graph = new Multigraph<>(DefaultEdge.class);
         this.loadTopologyConfig();
+        this.buildGraph();
     }
 
     public boolean isOnline(String nodeId) {
@@ -70,6 +77,23 @@ public class NodeManager {
                 System.out.println("[MASTER] Node " + nodeId + " went offline");
             }
         }, 7, TimeUnit.SECONDS));
+    }
+
+    // TODO: Change 'topology' to 'nodesStatus'
+    private void buildGraph(){
+        for(String s : this.topology.keySet()){
+            this.graph.addVertex(s);
+        }
+
+        for(Map.Entry<String, List<String>> e : this.topology.entrySet()){
+            for(String s : e.getValue()){
+                this.graph.addEdge(e.getKey(), s);
+            }
+        }
+    }
+
+    private List<String> getShortestPath(String from, String to){
+        return DijkstraShortestPath.findPathBetween(this.graph, from, to).getVertexList();
     }
 }
 
