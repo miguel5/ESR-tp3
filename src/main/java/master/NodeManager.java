@@ -46,6 +46,7 @@ public class NodeManager {
 
     public boolean changeStatus(String nodeId) {
         boolean status;
+
         if(this.nodesStatus.containsKey(nodeId)) {
             this.nodesStatus.remove(nodeId);
             status = false;
@@ -53,31 +54,6 @@ public class NodeManager {
             this.nodesStatus.put(nodeId, new ArrayList());
             status = true;
         }
-
-        /*
-        new Thread(() -> {
-            List<String> neighbours = getNeighbours(nodeId);
-            try {
-                DatagramSocket socket = new DatagramSocket(Constants.NEIGHBOURS_PORT);
-
-                 //For each neighbour of the changed node, send an updated list of their respective neighbours
-                for(String n : neighbours){
-                    List<String> newNeighbours = getNeighbours(n);
-                    NeighboursPacket packet = new NeighboursPacket(newNeighbours);
-                    byte[] x = new byte[0];
-                    x = packet.toBytes();
-                    DatagramPacket datagramPacket = new DatagramPacket(
-                            x, x.length, nodesIPs.get(n) , Constants.NEIGHBOURS_PORT);
-                    socket.send(datagramPacket);
-                }
-            } catch (SocketException e) {
-                e.printStackTrace();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        }).start();
-        */
-
         return status;
     }
 

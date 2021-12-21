@@ -3,7 +3,6 @@ package master;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.SocketException;
-import java.util.concurrent.ScheduledFuture;
 
 public class TaskRunner implements Runnable {
     private DatagramSocket datagramSocket;
@@ -55,3 +54,4 @@ public class TaskRunner implements Runnable {
         }
     }
 }
+
