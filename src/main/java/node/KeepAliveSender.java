@@ -10,17 +10,19 @@ public class KeepAliveSender implements Runnable{
 
     private DatagramSocket datagramSocket;
     private String nodeId;
+    private String bootstrapper;
 
-    public KeepAliveSender(String nodeId) throws SocketException {
+    public KeepAliveSender(String nodeId, String bootstrapper) throws SocketException {
         this.datagramSocket = new DatagramSocket();
         this.nodeId = nodeId;
+        this.bootstrapper = bootstrapper;
     }
 
     @Override
     public void run(){
         InetAddress address = null;
         try {
-            address = InetAddress.getByName("localhost");
+            address = InetAddress.getByName(this.bootstrapper);
 
             KeepAlivePacket p = new KeepAlivePacket(nodeId);
             byte[] x = new byte[0];

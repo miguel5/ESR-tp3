@@ -54,6 +54,10 @@ public class NodeManager {
             this.nodesStatus.put(nodeId, new ArrayList());
             status = true;
         }
+
+        // Rebuild the graph
+        this.buildGraph();
+
         return status;
     }
 
@@ -72,7 +76,7 @@ public class NodeManager {
                 byte[] x = new byte[0];
                 x = packet.toBytes();
                 DatagramPacket datagramPacket = new DatagramPacket(
-                        x, x.length, InetAddress.getByName("127.0.0.1") , Constants.NEIGHBOURS_PORT); //TODO: Replace 3rd parameter with "nodesIPs.get(n)"
+                        x, x.length, nodesIPs.get(n), Constants.NEIGHBOURS_PORT);
                 socket.send(datagramPacket);
             }
         } catch (SocketException e) {
@@ -82,9 +86,8 @@ public class NodeManager {
         }
     }
 
-    //TODO: Change to nodesStatus
     public List<String> getNeighbours(String nodeId) {
-        return this.topology.get(nodeId);
+        return this.nodesStatus.get(nodeId);
     }
 
     private void loadTopologyConfig() throws FileNotFoundException {
@@ -92,11 +95,6 @@ public class NodeManager {
         JsonReader reader = new JsonReader(new FileReader("./src/main/resources/topology.json"));
         HashMap<String, List<String>> data = gson.fromJson(reader, HashMap.class);
         this.topology = data;
-        /*
-        for (Map.Entry<String, ArrayList<String>> entry : data.entrySet()) {
-            System.out.println(entry.getKey() + ":" + entry.getValue().toString());
-        }
-         */
     }
 
     public void startCountdown(String nodeId, DatagramSocket socket) {
@@ -115,13 +113,13 @@ public class NodeManager {
         }, 7, TimeUnit.SECONDS));
     }
 
-    // TODO: Change 'topology' to 'nodesStatus'
+
     private void buildGraph(){
-        for(String s : this.topology.keySet()){
+        for(String s : this.nodesStatus.keySet()){
             this.graph.addVertex(s);
         }
 
-        for(Map.Entry<String, List<String>> e : this.topology.entrySet()){
+        for(Map.Entry<String, List<String>> e : this.nodesStatus.entrySet()){
             for(String s : e.getValue()){
                 this.graph.addEdge(e.getKey(), s);
             }
