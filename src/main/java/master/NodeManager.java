@@ -2,6 +2,8 @@ package master;
 
 import java.io.FileNotFoundException;
 import java.io.FileReader;
+import java.io.IOException;
+import java.net.*;
 import java.util.*;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -18,6 +20,7 @@ import org.jgrapht.graph.*;
 public class NodeManager {
     private Map<String, List<String>> topology;
     private Map<String, List<String>> nodesStatus;
+    private Map<String, InetAddress> nodesIPs;
     private Map<String, ScheduledFuture<?>> countdowns;
     private Graph<String, DefaultEdge> graph;
     
@@ -25,6 +28,7 @@ public class NodeManager {
     public NodeManager() throws FileNotFoundException {
         this.topology = new HashMap<>();
         this.nodesStatus = new HashMap<>();
+        this.nodesIPs = new HashMap<>();
         this.countdowns = new HashMap<>();
         this.graph = new Multigraph<>(DefaultEdge.class);
         this.loadTopologyConfig();
@@ -35,6 +39,11 @@ public class NodeManager {
         return this.nodesStatus.containsKey(nodeId);
     }
 
+    public void setNodeIP(String nodeId, InetAddress nodeIP) throws UnknownHostException {
+        this.nodesIPs.put(nodeId, nodeIP);
+    }
+
+
     public boolean changeStatus(String nodeId) {
         boolean status;
         if(this.nodesStatus.containsKey(nodeId)) {
@@ -44,10 +53,60 @@ public class NodeManager {
             this.nodesStatus.put(nodeId, new ArrayList());
             status = true;
         }
+
+        /*
+        new Thread(() -> {
+            List<String> neighbours = getNeighbours(nodeId);
+            try {
+                DatagramSocket socket = new DatagramSocket(Constants.NEIGHBOURS_PORT);
+
+                 //For each neighbour of the changed node, send an updated list of their respective neighbours
+                for(String n : neighbours){
+                    List<String> newNeighbours = getNeighbours(n);
+                    NeighboursPacket packet = new NeighboursPacket(newNeighbours);
+                    byte[] x = new byte[0];
+                    x = packet.toBytes();
+                    DatagramPacket datagramPacket = new DatagramPacket(
+                            x, x.length, nodesIPs.get(n) , Constants.NEIGHBOURS_PORT);
+                    socket.send(datagramPacket);
+                }
+            } catch (SocketException e) {
+                e.printStackTrace();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }).start();
+        */
+
         return status;
     }
 
-    //DEBUG: Change to nodesStatus
+    /*
+        Sends an updated list of neighbours to the given node's neighbours
+     */
+    public void sendUpdatedNeighbours(String node, DatagramSocket socket){
+        List<String> neighbours = getNeighbours(node);
+        try {
+            /*
+                For each neighbour of the changed node, send an updated list of their respective neighbours
+             */
+            for(String n : neighbours){
+                List<String> newNeighbours = getNeighbours(n);
+                NeighboursPacket packet = new NeighboursPacket(newNeighbours);
+                byte[] x = new byte[0];
+                x = packet.toBytes();
+                DatagramPacket datagramPacket = new DatagramPacket(
+                        x, x.length, InetAddress.getByName("127.0.0.1") , Constants.NEIGHBOURS_PORT); //TODO: Replace 3rd parameter with "nodesIPs.get(n)"
+                socket.send(datagramPacket);
+            }
+        } catch (SocketException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    //TODO: Change to nodesStatus
     public List<String> getNeighbours(String nodeId) {
         return this.topology.get(nodeId);
     }
@@ -64,7 +123,7 @@ public class NodeManager {
          */
     }
 
-    public void startCountdown(String nodeId) {
+    public void startCountdown(String nodeId, DatagramSocket socket) {
 
         if(this.countdowns.containsKey(nodeId))
             this.countdowns.get(nodeId).cancel(true);
@@ -74,6 +133,7 @@ public class NodeManager {
             @Override
             public void run() {
                 changeStatus(nodeId);
+                sendUpdatedNeighbours(nodeId, socket);
                 System.out.println("[MASTER] Node " + nodeId + " went offline");
             }
         }, 7, TimeUnit.SECONDS));

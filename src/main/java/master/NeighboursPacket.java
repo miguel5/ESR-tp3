@@ -1,7 +1,6 @@
 package master;
 
 import java.io.*;
-import java.util.ArrayList;
 import java.util.List;
 
 public class NeighboursPacket implements Serializable {

@@ -28,13 +28,16 @@ public class TaskRunner implements Runnable {
 
                     if (nm.isOnline(nodeId)){
                         // reset timer
-                        this.nm.startCountdown(nodeId);
+                        this.nm.startCountdown(nodeId, datagramSocket);
                         System.out.println("[MASTER] Node " + nodeId + " is Online");
                     }
                     else{
                         System.out.println("[MASTER] Node " + nodeId + " woke up");
 
+                        nm.setNodeIP(nodeId, incomingPacket.getAddress());
                         nm.changeStatus(nodeId);
+                        nm.sendUpdatedNeighbours(nodeId, datagramSocket);
+
 
                         NeighboursPacket p = new NeighboursPacket(nm.getNeighbours(nodeId));
                         byte[] x = new byte[0];
@@ -42,10 +45,12 @@ public class TaskRunner implements Runnable {
 
                         DatagramPacket packet = new DatagramPacket(x,x.length, incomingPacket.getAddress(), Constants.NEIGHBOURS_PORT);
                         this.datagramSocket.send(packet);
+
                     }
                 }
             } catch(Exception e) {
                 System.out.println(e.getMessage());
+                e.printStackTrace();
             }
         }
     }
