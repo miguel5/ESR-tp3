@@ -46,12 +46,27 @@ public class NodeManager {
 
     public boolean changeStatus(String nodeId) {
         boolean status;
+        List<String> onlineNeighbours = new ArrayList<>();
+        List<String> allNeighbours = this.topology.get(nodeId);
 
+        // Build list of online neighbours
+        for(String s : this.nodesStatus.keySet()){
+            if(allNeighbours.contains(s))
+                onlineNeighbours.add(s);
+        }
+
+        // Node going offline
         if(this.nodesStatus.containsKey(nodeId)) {
             this.nodesStatus.remove(nodeId);
+
+            for(String s : onlineNeighbours)
+                this.nodesStatus.get(s).remove(nodeId);
+
             status = false;
-        } else {
-            this.nodesStatus.put(nodeId, new ArrayList());
+        }
+        // Node going online
+        else {
+            this.nodesStatus.put(nodeId, onlineNeighbours);
             status = true;
         }
 
@@ -64,25 +79,19 @@ public class NodeManager {
     /*
         Sends an updated list of neighbours to the given node's neighbours
      */
-    public void sendUpdatedNeighbours(String node, DatagramSocket socket){
+    public void sendUpdatedNeighbours(String node, DatagramSocket socket) throws IOException {
         List<String> neighbours = getNeighbours(node);
-        try {
-            /*
-                For each neighbour of the changed node, send an updated list of their respective neighbours
-             */
-            for(String n : neighbours){
-                List<String> newNeighbours = getNeighbours(n);
-                NeighboursPacket packet = new NeighboursPacket(newNeighbours);
-                byte[] x = new byte[0];
-                x = packet.toBytes();
-                DatagramPacket datagramPacket = new DatagramPacket(
-                        x, x.length, nodesIPs.get(n), Constants.NEIGHBOURS_PORT);
-                socket.send(datagramPacket);
-            }
-        } catch (SocketException e) {
-            e.printStackTrace();
-        } catch (IOException e) {
-            e.printStackTrace();
+        /*
+            For each neighbour of the changed node, send an updated list of their respective neighbours
+         */
+        for(String n : neighbours){
+            List<String> newNeighbours = getNeighbours(n);
+            NeighboursPacket packet = new NeighboursPacket(newNeighbours);
+            byte[] x = new byte[0];
+            x = packet.toBytes();
+            DatagramPacket datagramPacket = new DatagramPacket(
+                    x, x.length, nodesIPs.get(n), Constants.NEIGHBOURS_PORT);
+            socket.send(datagramPacket);
         }
     }
 
@@ -107,7 +116,11 @@ public class NodeManager {
             @Override
             public void run() {
                 changeStatus(nodeId);
-                sendUpdatedNeighbours(nodeId, socket);
+                try {
+                    sendUpdatedNeighbours(nodeId, socket);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
                 System.out.println("[MASTER] Node " + nodeId + " went offline");
             }
         }, 7, TimeUnit.SECONDS));
