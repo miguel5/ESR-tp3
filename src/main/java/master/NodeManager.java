@@ -27,7 +27,7 @@ public class NodeManager {
     private Map<String, ScheduledFuture<?>> countdowns;
     private Graph<String, DefaultEdge> graph;
     private Map<String, Set<String>> routingTable;
-    private Lock statusLock;
+    private Lock statusLock, nodesIPLock;
 
     public NodeManager() throws FileNotFoundException {
         this.topology = new HashMap<>();
@@ -38,6 +38,8 @@ public class NodeManager {
         this.routingTable = new HashMap<>();
         this.graph = new Multigraph<>(DefaultEdge.class);
         this.statusLock = new ReentrantLock();
+        this.nodesIPLock = new ReentrantLock();
+
         this.loadTopologyConfig();
         this.buildGraph();
     }
@@ -52,8 +54,23 @@ public class NodeManager {
         }
     }
 
+    public Map<String, InetAddress> getNodesIPs() {
+        try {
+            this.nodesIPLock.lock();
+            return nodesIPs;
+        }
+        finally {
+            this.nodesIPLock.unlock();
+        }
+    }
+
     public void setNodeIP(String nodeId, InetAddress nodeIP) throws UnknownHostException {
-        this.nodesIPs.put(nodeId, nodeIP);
+        try {
+            this.nodesIPLock.lock();
+            this.nodesIPs.put(nodeId, nodeIP);
+        } finally {
+            this.nodesIPLock.unlock();
+        }
     }
 
 
@@ -110,8 +127,12 @@ public class NodeManager {
             //neighbours.add("O7");
             //this.setNodeIP("O7", InetAddress.getByName("localhost"));
             for (String n : neighbours) {
-                List<String> newNeighbours = this.nodesStatus.get(n);
-                NeighboursPacket packet = new NeighboursPacket(new HashSet<>(newNeighbours));
+                List<String> newNeighboursList = this.nodesStatus.get(n);
+                Map<String, InetAddress> newNeighbours = new HashMap<>();
+                for(String s : newNeighboursList){
+                    newNeighbours.put(s, this.nodesIPs.get(s));
+                }
+                NeighboursPacket packet = new NeighboursPacket(newNeighbours);
                 byte[] x = new byte[0];
                 x = packet.toBytes();
                 DatagramPacket datagramPacket = new DatagramPacket(
@@ -150,7 +171,7 @@ public class NodeManager {
             } catch (IOException e) {
                 e.printStackTrace();
             }
-            set_routing_table();
+            setRoutingTable();
             System.out.println("[MASTER] Node " + nodeId + " went offline");
         }, 7, TimeUnit.SECONDS));
     }
@@ -187,7 +208,7 @@ public class NodeManager {
         return new ArrayList<>(this.playerClients);
     }
 
-    public Map<String, List<String>> get_paths(){
+    public Map<String, List<String>> getPaths(){
         Map<String, List<String>> all_paths = new HashMap<>();
         List<String> activeClients = getClients();
         if(activeClients.size() > 0)
@@ -198,7 +219,7 @@ public class NodeManager {
         return all_paths;
     }
 
-    public Map<String, Set<String>> build_flows(Map<String, List<String>> all_paths){
+    public Map<String, Set<String>> buildFlows(Map<String, List<String>> all_paths){
         // key: node; value: destinations
         Map<String, Set<String>> all_flows = new HashMap<>();
         if(all_paths.size() > 0)
@@ -219,8 +240,8 @@ public class NodeManager {
         return all_flows;
     }
 
-    public void set_routing_table(){
-       this.routingTable = build_flows(get_paths());
+    public void setRoutingTable(){
+       this.routingTable = buildFlows(getPaths());
     }
 
     public Map<String, Set<String>> getRoutingTable(){

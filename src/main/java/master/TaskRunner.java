@@ -2,8 +2,11 @@ package master;
 
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
+import java.net.InetAddress;
 import java.net.SocketException;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 
 public class TaskRunner implements Runnable {
@@ -14,8 +17,8 @@ public class TaskRunner implements Runnable {
 
     public TaskRunner(NodeManager nm) throws SocketException {
         this.keepAliveSocket = new DatagramSocket(Constants.KEEP_ALIVE_PORT);
-        this.neighboursSocket = new DatagramSocket(Constants.STREAMING_PORT);  // TODO: Change to NEIGHBOURS_PORT and uncomment line below
-        //this.streamingSocket = new DatagramSocket(Constants.STREAMING_PORT);
+        this.neighboursSocket = new DatagramSocket(Constants.NEIGHBOURS_PORT);  // TODO: Change to NEIGHBOURS_PORT and uncomment line below
+        this.streamingSocket = new DatagramSocket(Constants.STREAMING_PORT);
         this.nm = nm;
     }
 
@@ -42,16 +45,17 @@ public class TaskRunner implements Runnable {
 
                         nm.setNodeIP(nodeId, incomingPacket.getAddress());
                         nm.changeStatus(nodeId, neighboursSocket, isClient);
-                        //nm.sendUpdatedNeighbours(nodeId, neighboursSocket);
 
                         // set routing table when keep alive packets are coming
-                        nm.set_routing_table();
+                        nm.setRoutingTable();
 
-                        /* TODO: always null with just one node */
                         // routing table is done, so send the neighbours (flows) to nodeId
-                        Set<String> node_flows = new HashSet<>();
+                        Map<String, InetAddress> node_flows = new HashMap<>();
                         if(nm.getRoutingTable().containsKey(nodeId)){
-                            node_flows = nm.getRoutingTable().get(nodeId);
+                            Map<String, InetAddress> nodesIPs = this.nm.getNodesIPs();
+                            for(String s : nm.getRoutingTable().get(nodeId)){
+                                node_flows.put(s, nodesIPs.get(s));
+                            }
                         }
                         NeighboursPacket p = new NeighboursPacket(node_flows);
 

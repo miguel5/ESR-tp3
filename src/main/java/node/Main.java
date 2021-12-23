@@ -1,8 +1,11 @@
 package node;
 
+import master.Constants;
 import streaming.Cliente;
+import streaming.StreamRelay;
 
 import java.io.IOException;
+import java.net.DatagramSocket;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -13,6 +16,9 @@ public class Main {
         Boolean isClient = Boolean.FALSE;
         final String nodeId = args[0];
         final String bootstrapper = args[1];
+        DatagramSocket neighboursSocket = new DatagramSocket(Constants.NEIGHBOURS_PORT);
+        DatagramSocket streamingSocket = new DatagramSocket(Constants.STREAMING_PORT);
+        StreamRelay sr = new StreamRelay(streamingSocket);
 
         if(args.length == 3)
             if(args[2].equals("-c"))
@@ -21,13 +27,13 @@ public class Main {
         final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
         scheduler.scheduleAtFixedRate(new KeepAliveSender(nodeId, bootstrapper, isClient), 0, 5, TimeUnit.SECONDS);
 
-        new Thread(new NeighboursHandler()).start();
+        new Thread(new NeighboursHandler(sr, neighboursSocket)).start();
 
         if(isClient)
-            /* TODO: i'm a client, so I'll receive and forward the stream */
-            new Cliente();
+            /* I'm a client, so I'll receive and forward the stream */
+            new Thread(new Cliente(sr));
         else {
-            /* TODO: i'm not a client, so I'll just forward stuff */
+            /* I'm not a client, so I'll just forward stuff */
         }
     }
 }

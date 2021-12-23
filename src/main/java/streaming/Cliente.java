@@ -18,7 +18,7 @@ import java.awt.event.*;
 import javax.swing.*;
 import javax.swing.Timer;
 
-public class Cliente {
+public class Cliente implements Runnable {
 
   //GUI
   //----
@@ -38,6 +38,7 @@ public class Cliente {
   DatagramPacket rcvdp; //UDP packet received from the server (to receive)
   DatagramSocket RTPsocket; //socket to be used to send and receive UDP packet
   static int RTP_RCV_PORT = Constants.STREAMING_PORT; //port where the client will receive the RTP packets
+  StreamRelay sr;
   
   Timer cTimer; //timer used to receive data from the UDP socket
   byte[] cBuf; //buffer used to store data received from the server 
@@ -45,7 +46,9 @@ public class Cliente {
   //--------------------------
   //Constructor
   //--------------------------
-  public Cliente() {
+  public Cliente(StreamRelay sr) {
+
+    this.sr = sr;
 
     //build GUI
     //--------------------------
@@ -91,8 +94,9 @@ public class Cliente {
 
     try {
       // socket e video
-	    RTPsocket = new DatagramSocket(RTP_RCV_PORT); //init RTP socket (o mesmo para o cliente e servidor)
-        RTPsocket.setSoTimeout(5000); // setimeout to 5s
+      // RTPsocket = new DatagramSocket(RTP_RCV_PORT); //init RTP socket (o mesmo para o cliente e servidor)
+      RTPsocket = sr.getSocket();
+      RTPsocket.setSoTimeout(5000); // setimeout to 5s
     } catch (SocketException e) {
         System.out.println("Cliente: erro no socket: " + e.getMessage());
     }
@@ -101,9 +105,10 @@ public class Cliente {
   //------------------------------------
   //main
   //------------------------------------
-  public static void main(String argv[]) throws Exception
-  {
-        Cliente t = new Cliente();
+
+  @Override
+  public void run() {
+    Cliente t = new Cliente((this.sr));
   }
 
 
@@ -145,39 +150,47 @@ public class Cliente {
       rcvdp = new DatagramPacket(cBuf, cBuf.length);
 
       try{
-	//receive the DP from the socket:
-	RTPsocket.receive(rcvdp);
-	  
-	//create an RTPpacket object from the DP
-	RTPpacket rtp_packet = new RTPpacket(rcvdp.getData(), rcvdp.getLength());
+        //receive the DP from the socket:
+        RTPsocket.receive(rcvdp);
 
-	//print important header fields of the RTP packet received: 
-	System.out.println("Got RTP packet with SeqNum # "+rtp_packet.getsequencenumber()+" TimeStamp "+rtp_packet.gettimestamp()+" ms, of type "+rtp_packet.getpayloadtype());
-	
-	//print header bitstream:
-	rtp_packet.printheader();
+        // Send packet to other nodes asynchronously
+        new Thread(() -> {
+          try {
+            sr.relay(rcvdp);
+          } catch (IOException ex) {
+            ex.printStackTrace();
+          }
+        });
 
-	//get the payload bitstream from the RTPpacket object
-	int payload_length = rtp_packet.getpayload_length();
-	byte [] payload = new byte[payload_length];
-	rtp_packet.getpayload(payload);
+        //create an RTPpacket object from the DP
+        RTPpacket rtp_packet = new RTPpacket(rcvdp.getData(), rcvdp.getLength());
 
-	//get an Image object from the payload bitstream
-	Toolkit toolkit = Toolkit.getDefaultToolkit();
-	Image image = toolkit.createImage(payload, 0, payload_length);
-	
-	//display the image as an ImageIcon object
-	icon = new ImageIcon(image);
-	iconLabel.setIcon(icon);
+        //print important header fields of the RTP packet received:
+        System.out.println("Got RTP packet with SeqNum # "+rtp_packet.getsequencenumber()+" TimeStamp "+rtp_packet.gettimestamp()+" ms, of type "+rtp_packet.getpayloadtype());
+
+        //print header bitstream:
+        rtp_packet.printheader();
+
+        //get the payload bitstream from the RTPpacket object
+        int payload_length = rtp_packet.getpayload_length();
+        byte [] payload = new byte[payload_length];
+        rtp_packet.getpayload(payload);
+
+        //get an Image object from the payload bitstream
+        Toolkit toolkit = Toolkit.getDefaultToolkit();
+        Image image = toolkit.createImage(payload, 0, payload_length);
+
+        //display the image as an ImageIcon object
+        icon = new ImageIcon(image);
+        iconLabel.setIcon(icon);
       }
       catch (InterruptedIOException iioe){
-	System.out.println("Nothing to read");
+	    System.out.println("Nothing to read");
       }
       catch (IOException ioe) {
-	System.out.println("Exception caught: "+ioe);
+	    System.out.println("Exception caught: "+ioe);
       }
     }
   }
-
-}//end of Class Cliente
+}
 

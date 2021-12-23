@@ -1,12 +1,14 @@
 package master;
 
 import java.io.*;
+import java.net.InetAddress;
+import java.util.Map;
 import java.util.Set;
 
 public class NeighboursPacket implements Serializable {
-    private Set<String> flows;
+    private Map<String, InetAddress> flows;
 
-    public NeighboursPacket(Set<String> flows) {
+    public NeighboursPacket(Map<String, InetAddress> flows) {
         this.flows = flows;
     }
 
@@ -16,7 +18,7 @@ public class NeighboursPacket implements Serializable {
         return (NeighboursPacket) ois.readObject();
     }
 
-    public Set<String> getNeighbours() { return flows; }
+    public Map<String, InetAddress> getNeighbours() { return flows; }
 
     public byte[] toBytes() throws IOException {
         ByteArrayOutputStream bos = new ByteArrayOutputStream();
