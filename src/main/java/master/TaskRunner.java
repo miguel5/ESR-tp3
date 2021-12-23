@@ -5,11 +5,15 @@ import java.net.DatagramSocket;
 import java.net.SocketException;
 
 public class TaskRunner implements Runnable {
-    private DatagramSocket datagramSocket;
+    private DatagramSocket keepAliveSocket;
+    private DatagramSocket neighboursSocket;
+    private DatagramSocket streamingSocket;
     private NodeManager nm;
 
     public TaskRunner(NodeManager nm) throws SocketException {
-        this.datagramSocket = new DatagramSocket(Constants.KEEP_ALIVE_PORT);
+        this.keepAliveSocket = new DatagramSocket(Constants.KEEP_ALIVE_PORT);
+        this.neighboursSocket = new DatagramSocket(Constants.STREAMING_PORT);  // TODO: Change to NEIGHBOURS_PORT and uncomment line below
+        //this.streamingSocket = new DatagramSocket(Constants.STREAMING_PORT);
         this.nm = nm;
     }
 
@@ -20,22 +24,22 @@ public class TaskRunner implements Runnable {
         while (true) {
             try {
                 DatagramPacket incomingPacket = new DatagramPacket(incomingData, incomingData.length);
-                this.datagramSocket.receive(incomingPacket);
+                this.keepAliveSocket.receive(incomingPacket);
                 if(incomingPacket != null){
                     KeepAlivePacket keepAlivePacket = KeepAlivePacket.bytesToObject(incomingPacket.getData());
                     String nodeId = keepAlivePacket.getNodeId();
 
                     if (nm.isOnline(nodeId)){
                         // reset timer
-                        this.nm.startCountdown(nodeId, datagramSocket);
+                        this.nm.startCountdown(nodeId, neighboursSocket);
                         System.out.println("[MASTER] Node " + nodeId + " is Online");
                     }
                     else{
                         System.out.println("[MASTER] Node " + nodeId + " woke up");
 
                         nm.setNodeIP(nodeId, incomingPacket.getAddress());
-                        nm.changeStatus(nodeId);
-                        nm.sendUpdatedNeighbours(nodeId, datagramSocket);
+                        nm.changeStatus(nodeId, neighboursSocket);
+                        //nm.sendUpdatedNeighbours(nodeId, neighboursSocket);
 
 
                         NeighboursPacket p = new NeighboursPacket(nm.getNeighbours(nodeId));
@@ -43,7 +47,7 @@ public class TaskRunner implements Runnable {
                         x = p.toBytes();
 
                         DatagramPacket packet = new DatagramPacket(x,x.length, incomingPacket.getAddress(), Constants.NEIGHBOURS_PORT);
-                        this.datagramSocket.send(packet);
+                        this.neighboursSocket.send(packet);
 
                     }
                 }
