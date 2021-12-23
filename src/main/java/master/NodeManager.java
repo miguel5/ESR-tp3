@@ -9,6 +9,8 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 import com.google.gson.Gson;
 import com.google.gson.stream.JsonReader;
@@ -23,7 +25,8 @@ public class NodeManager {
     private Map<String, InetAddress> nodesIPs;
     private Map<String, ScheduledFuture<?>> countdowns;
     private Graph<String, DefaultEdge> graph;
-    
+    private Lock statusLock;
+
 
     public NodeManager() throws FileNotFoundException {
         this.topology = new HashMap<>();
@@ -31,12 +34,19 @@ public class NodeManager {
         this.nodesIPs = new HashMap<>();
         this.countdowns = new HashMap<>();
         this.graph = new Multigraph<>(DefaultEdge.class);
+        this.statusLock = new ReentrantLock();
         this.loadTopologyConfig();
         this.buildGraph();
     }
 
     public boolean isOnline(String nodeId) {
-        return this.nodesStatus.containsKey(nodeId);
+        try {
+            this.statusLock.lock();
+            return this.nodesStatus.containsKey(nodeId);
+        }
+        finally {
+            this.statusLock.unlock();
+        }
     }
 
     public void setNodeIP(String nodeId, InetAddress nodeIP) throws UnknownHostException {
@@ -44,34 +54,43 @@ public class NodeManager {
     }
 
 
-    public boolean changeStatus(String nodeId) {
+    public boolean changeStatus(String nodeId, DatagramSocket socket) throws IOException {
         boolean status;
         List<String> onlineNeighbours = new ArrayList<>();
         List<String> allNeighbours = this.topology.get(nodeId);
 
-        // Build list of online neighbours
-        for(String s : this.nodesStatus.keySet()){
-            if(allNeighbours.contains(s))
-                onlineNeighbours.add(s);
+        try {
+            this.statusLock.lock();
+
+            // Build list of online neighbours
+            for (String s : this.nodesStatus.keySet()) {
+                if (allNeighbours.contains(s))
+                    onlineNeighbours.add(s);
+            }
+
+            // Node going offline
+            if (this.nodesStatus.containsKey(nodeId)) {
+                this.nodesStatus.remove(nodeId);
+
+                for (String s : onlineNeighbours)
+                    this.nodesStatus.get(s).remove(nodeId);
+
+                status = false;
+            }
+            // Node going online
+            else {
+                this.nodesStatus.put(nodeId, onlineNeighbours);
+                status = true;
+            }
+
+            // Rebuild the graph
+            this.buildGraph();
+
+            this.sendUpdatedNeighbours(socket, onlineNeighbours);
         }
-
-        // Node going offline
-        if(this.nodesStatus.containsKey(nodeId)) {
-            this.nodesStatus.remove(nodeId);
-
-            for(String s : onlineNeighbours)
-                this.nodesStatus.get(s).remove(nodeId);
-
-            status = false;
+        finally {
+            this.statusLock.unlock();
         }
-        // Node going online
-        else {
-            this.nodesStatus.put(nodeId, onlineNeighbours);
-            status = true;
-        }
-
-        // Rebuild the graph
-        this.buildGraph();
 
         return status;
     }
@@ -79,24 +98,32 @@ public class NodeManager {
     /*
         Sends an updated list of neighbours to the given node's neighbours
      */
-    public void sendUpdatedNeighbours(String node, DatagramSocket socket) throws IOException {
-        List<String> neighbours = getNeighbours(node);
-        /*
-            For each neighbour of the changed node, send an updated list of their respective neighbours
-         */
-        for(String n : neighbours){
-            List<String> newNeighbours = getNeighbours(n);
-            NeighboursPacket packet = new NeighboursPacket(newNeighbours);
-            byte[] x = new byte[0];
-            x = packet.toBytes();
-            DatagramPacket datagramPacket = new DatagramPacket(
-                    x, x.length, nodesIPs.get(n), Constants.NEIGHBOURS_PORT);
-            socket.send(datagramPacket);
-        }
+    private void sendUpdatedNeighbours(DatagramSocket socket, List<String> neighbours) throws IOException {
+            /*
+                For each neighbour of the changed node, send an updated list of their respective neighbours
+            */
+            //neighbours.add("O7");
+            //this.setNodeIP("O7", InetAddress.getByName("localhost"));
+            for (String n : neighbours) {
+                List<String> newNeighbours = this.nodesStatus.get(n);
+                NeighboursPacket packet = new NeighboursPacket(newNeighbours);
+                byte[] x = new byte[0];
+                x = packet.toBytes();
+                DatagramPacket datagramPacket = new DatagramPacket(
+                        x, x.length, nodesIPs.get(n), Constants.NEIGHBOURS_PORT);
+                socket.send(datagramPacket);
+            }
     }
 
     public List<String> getNeighbours(String nodeId) {
-        return this.nodesStatus.get(nodeId);
+        try {
+            this.statusLock.lock();
+            return this.nodesStatus.get(nodeId);
+        }
+        finally {
+            this.statusLock.unlock();
+        }
+
     }
 
     private void loadTopologyConfig() throws FileNotFoundException {
@@ -112,17 +139,13 @@ public class NodeManager {
             this.countdowns.get(nodeId).cancel(true);
 
         final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
-        this.countdowns.put(nodeId, scheduler.schedule(new Runnable() {
-            @Override
-            public void run() {
-                changeStatus(nodeId);
-                try {
-                    sendUpdatedNeighbours(nodeId, socket);
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-                System.out.println("[MASTER] Node " + nodeId + " went offline");
+        this.countdowns.put(nodeId, scheduler.schedule(() -> {
+            try {
+                changeStatus(nodeId, socket);
+            } catch (IOException e) {
+                e.printStackTrace();
             }
+            System.out.println("[MASTER] Node " + nodeId + " went offline");
         }, 7, TimeUnit.SECONDS));
     }
 

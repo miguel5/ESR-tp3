@@ -38,8 +38,8 @@ public class TaskRunner implements Runnable {
                         System.out.println("[MASTER] Node " + nodeId + " woke up");
 
                         nm.setNodeIP(nodeId, incomingPacket.getAddress());
-                        nm.changeStatus(nodeId);
-                        nm.sendUpdatedNeighbours(nodeId, neighboursSocket);
+                        nm.changeStatus(nodeId, neighboursSocket);
+                        //nm.sendUpdatedNeighbours(nodeId, neighboursSocket);
 
 
                         NeighboursPacket p = new NeighboursPacket(nm.getNeighbours(nodeId));
