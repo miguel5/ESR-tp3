@@ -4,8 +4,10 @@ import java.io.*;
 
 public class KeepAlivePacket implements Serializable {
     private String nodeId;
+    private Boolean is_client;
 
-    public KeepAlivePacket(String nodeId) {
+    public KeepAlivePacket(String nodeId, Boolean isClient) {
+        this.is_client = isClient;
         this.nodeId = nodeId;
     }
 
@@ -18,6 +20,8 @@ public class KeepAlivePacket implements Serializable {
     public String getNodeId() {
         return nodeId;
     }
+
+    public Boolean node_isClient(){ return is_client; }
 
 
     public byte[] toBytes() throws IOException {

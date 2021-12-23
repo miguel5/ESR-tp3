@@ -22,17 +22,20 @@ import org.jgrapht.graph.*;
 public class NodeManager {
     private Map<String, List<String>> topology;
     private Map<String, List<String>> nodesStatus;
+    private Set<String> playerClients;
     private Map<String, InetAddress> nodesIPs;
     private Map<String, ScheduledFuture<?>> countdowns;
     private Graph<String, DefaultEdge> graph;
+    private Map<String, Set<String>> routingTable;
     private Lock statusLock;
-
 
     public NodeManager() throws FileNotFoundException {
         this.topology = new HashMap<>();
         this.nodesStatus = new HashMap<>();
+        this.playerClients = new HashSet<>();
         this.nodesIPs = new HashMap<>();
         this.countdowns = new HashMap<>();
+        this.routingTable = new HashMap<>();
         this.graph = new Multigraph<>(DefaultEdge.class);
         this.statusLock = new ReentrantLock();
         this.loadTopologyConfig();
@@ -54,7 +57,7 @@ public class NodeManager {
     }
 
 
-    public boolean changeStatus(String nodeId, DatagramSocket socket) throws IOException {
+    public boolean changeStatus(String nodeId, DatagramSocket socket, Boolean isClient) throws IOException {
         boolean status;
         List<String> onlineNeighbours = new ArrayList<>();
         List<String> allNeighbours = this.topology.get(nodeId);
@@ -79,6 +82,8 @@ public class NodeManager {
             }
             // Node going online
             else {
+                if(isClient)
+                    this.playerClients.add(nodeId);
                 this.nodesStatus.put(nodeId, onlineNeighbours);
                 status = true;
             }
@@ -106,7 +111,7 @@ public class NodeManager {
             //this.setNodeIP("O7", InetAddress.getByName("localhost"));
             for (String n : neighbours) {
                 List<String> newNeighbours = this.nodesStatus.get(n);
-                NeighboursPacket packet = new NeighboursPacket(newNeighbours);
+                NeighboursPacket packet = new NeighboursPacket(new HashSet<>(newNeighbours));
                 byte[] x = new byte[0];
                 x = packet.toBytes();
                 DatagramPacket datagramPacket = new DatagramPacket(
@@ -133,7 +138,7 @@ public class NodeManager {
         this.topology = data;
     }
 
-    public void startCountdown(String nodeId, DatagramSocket socket) {
+    public void startCountdown(String nodeId, DatagramSocket socket, Boolean isClient) {
 
         if(this.countdowns.containsKey(nodeId))
             this.countdowns.get(nodeId).cancel(true);
@@ -141,10 +146,11 @@ public class NodeManager {
         final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
         this.countdowns.put(nodeId, scheduler.schedule(() -> {
             try {
-                changeStatus(nodeId, socket);
+                changeStatus(nodeId, socket, isClient);
             } catch (IOException e) {
                 e.printStackTrace();
             }
+            set_routing_table();
             System.out.println("[MASTER] Node " + nodeId + " went offline");
         }, 7, TimeUnit.SECONDS));
     }
@@ -164,6 +170,61 @@ public class NodeManager {
 
     private List<String> getShortestPath(String from, String to){
         return DijkstraShortestPath.findPathBetween(this.graph, from, to).getVertexList();
+    }
+
+    /*
+    public List<String> get_clients(){
+        List<String> client_list = new ArrayList<>();
+        for(Map.Entry<String, Pair<Boolean, List<String>>> entry : nodesStatus.entrySet()){
+            // if it's a streaming client, add it
+            if(entry.getValue().getFirst()) client_list.add(entry.getKey());
+        }
+        return client_list;
+    }
+     */
+
+    public List<String> getClients(){
+        return new ArrayList<>(this.playerClients);
+    }
+
+    public Map<String, List<String>> get_paths(){
+        Map<String, List<String>> all_paths = new HashMap<>();
+        List<String> activeClients = getClients();
+        if(activeClients.size() > 0)
+            for(String client : activeClients){
+                List<String> client_path = getShortestPath(Constants.SERVER_ID, client);
+                all_paths.put(client, client_path);
+            }
+        return all_paths;
+    }
+
+    public Map<String, Set<String>> build_flows(Map<String, List<String>> all_paths){
+        // key: node; value: destinations
+        Map<String, Set<String>> all_flows = new HashMap<>();
+        if(all_paths.size() > 0)
+            for (Map.Entry<String, List<String>> entry : all_paths.entrySet()) {
+                int list_size = entry.getValue().size();
+                for(int i = 0; i < list_size - 1; i++){
+                    String father_node = entry.getValue().get(i);
+                    String next_node = entry.getValue().get(i+1);
+                    if(all_flows.containsKey(entry.getValue().get(i))){
+                        all_flows.get(father_node).add(next_node);
+                    }else{
+                        Set<String> new_set = new HashSet<>();
+                        new_set.add(next_node);
+                        all_flows.put(father_node, new_set);
+                    }
+                }
+            }
+        return all_flows;
+    }
+
+    public void set_routing_table(){
+       this.routingTable = build_flows(get_paths());
+    }
+
+    public Map<String, Set<String>> getRoutingTable(){
+        return this.routingTable;
     }
 }
 

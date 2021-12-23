@@ -1,13 +1,13 @@
 package master;
 
 import java.io.*;
-import java.util.List;
+import java.util.Set;
 
 public class NeighboursPacket implements Serializable {
-    private List<String> neighbours;
+    private Set<String> flows;
 
-    public NeighboursPacket(List<String> neighbours) {
-        this.neighbours = neighbours;
+    public NeighboursPacket(Set<String> flows) {
+        this.flows = flows;
     }
 
     public static NeighboursPacket bytesToObject (byte[] incomingData) throws IOException, ClassNotFoundException {
@@ -16,9 +16,7 @@ public class NeighboursPacket implements Serializable {
         return (NeighboursPacket) ois.readObject();
     }
 
-    public List<String> getNeighbours() {
-        return neighbours;
-    }
+    public Set<String> getNeighbours() { return flows; }
 
     public byte[] toBytes() throws IOException {
         ByteArrayOutputStream bos = new ByteArrayOutputStream();

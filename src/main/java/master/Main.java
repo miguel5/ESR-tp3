@@ -1,6 +1,5 @@
 package master;
 
-import java.io.FileNotFoundException;
 import java.net.SocketException;
 
 public class Main {
@@ -9,7 +8,21 @@ public class Main {
         try {
             NodeManager nm = new NodeManager();
             new Thread(new TaskRunner(nm)).start();
-        } catch (FileNotFoundException e) {
+
+            new Thread(){
+                public void run(){
+                    //new Servidor("src/main/resources/movie.Mjpeg", nm);
+                }
+            }.start();
+
+            /* debug to check streaming stuff */
+            while(true){
+                Thread.sleep(2000);
+                System.out.println("STREAMING CLIENTS: " + nm.getClients());
+                System.out.println("ROUTING TABLE: " + nm.getRoutingTable());
+            }
+
+        } catch (Exception e) {
             e.printStackTrace();
             System.out.println(e.getMessage());
             System.exit(0);

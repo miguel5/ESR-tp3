@@ -3,6 +3,8 @@ package master;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.SocketException;
+import java.util.HashSet;
+import java.util.Set;
 
 public class TaskRunner implements Runnable {
     private DatagramSocket keepAliveSocket;
@@ -28,27 +30,36 @@ public class TaskRunner implements Runnable {
                 if(incomingPacket != null){
                     KeepAlivePacket keepAlivePacket = KeepAlivePacket.bytesToObject(incomingPacket.getData());
                     String nodeId = keepAlivePacket.getNodeId();
+                    Boolean isClient = keepAlivePacket.node_isClient();
 
                     if (nm.isOnline(nodeId)){
                         // reset timer
-                        this.nm.startCountdown(nodeId, neighboursSocket);
+                        this.nm.startCountdown(nodeId, neighboursSocket, isClient);
                         System.out.println("[MASTER] Node " + nodeId + " is Online");
                     }
                     else{
                         System.out.println("[MASTER] Node " + nodeId + " woke up");
 
                         nm.setNodeIP(nodeId, incomingPacket.getAddress());
-                        nm.changeStatus(nodeId, neighboursSocket);
+                        nm.changeStatus(nodeId, neighboursSocket, isClient);
                         //nm.sendUpdatedNeighbours(nodeId, neighboursSocket);
 
+                        // set routing table when keep alive packets are coming
+                        nm.set_routing_table();
 
-                        NeighboursPacket p = new NeighboursPacket(nm.getNeighbours(nodeId));
+                        /* TODO: always null with just one node */
+                        // routing table is done, so send the neighbours (flows) to nodeId
+                        Set<String> node_flows = new HashSet<>();
+                        if(nm.getRoutingTable().containsKey(nodeId)){
+                            node_flows = nm.getRoutingTable().get(nodeId);
+                        }
+                        NeighboursPacket p = new NeighboursPacket(node_flows);
+
                         byte[] x = new byte[0];
                         x = p.toBytes();
 
                         DatagramPacket packet = new DatagramPacket(x,x.length, incomingPacket.getAddress(), Constants.NEIGHBOURS_PORT);
                         this.neighboursSocket.send(packet);
-
                     }
                 }
             } catch(Exception e) {
