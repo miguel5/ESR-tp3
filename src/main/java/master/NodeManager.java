@@ -154,7 +154,7 @@ public class NodeManager {
 
     private void loadTopologyConfig() throws FileNotFoundException {
         Gson gson = new Gson();
-        JsonReader reader = new JsonReader(new FileReader("./src/main/resources/topology.json"));
+        JsonReader reader = new JsonReader(new FileReader(Main.topologyPath));
         HashMap<String, List<String>> data = gson.fromJson(reader, HashMap.class);
         this.topology = data;
     }

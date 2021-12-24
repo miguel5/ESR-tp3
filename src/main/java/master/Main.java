@@ -3,7 +3,12 @@ package master;
 import java.net.SocketException;
 
 public class Main {
+    public static String topologyPath = "topology.json";
+
     public static void main(String[] args) throws SocketException {
+
+        if(args.length == 1)
+            topologyPath = args[0];
 
         try {
             NodeManager nm = new NodeManager();
