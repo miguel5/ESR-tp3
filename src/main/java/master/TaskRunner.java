@@ -1,13 +1,12 @@
 package master;
 
+import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.net.SocketException;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
-import java.util.Set;
 
 public class TaskRunner implements Runnable {
     private DatagramSocket keepAliveSocket;
@@ -15,11 +14,15 @@ public class TaskRunner implements Runnable {
     private DatagramSocket streamingSocket;
     private NodeManager nm;
 
-    public TaskRunner(NodeManager nm) throws SocketException {
+    public TaskRunner(NodeManager nm) throws IOException {
         this.keepAliveSocket = new DatagramSocket(Constants.KEEP_ALIVE_PORT);
         this.neighboursSocket = new DatagramSocket(Constants.NEIGHBOURS_PORT);  // TODO: Change to NEIGHBOURS_PORT and uncomment line below
         this.streamingSocket = new DatagramSocket(Constants.STREAMING_PORT);
         this.nm = nm;
+
+        // TODO: Get a more permanent solution to set the server online
+        nm.setNodeIP(Constants.SERVER_ID, InetAddress.getByName("10.0.0.10"));
+        this.nm.changeStatus(Constants.SERVER_ID, neighboursSocket, false);
     }
 
     @Override
@@ -47,7 +50,7 @@ public class TaskRunner implements Runnable {
                         nm.changeStatus(nodeId, neighboursSocket, isClient);
 
                         // set routing table when keep alive packets are coming
-                        nm.setRoutingTable();
+                        nm.updateRoutingTable();
 
                         // routing table is done, so send the neighbours (flows) to nodeId
                         Map<String, InetAddress> node_flows = new HashMap<>();
