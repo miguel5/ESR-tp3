@@ -40,8 +40,13 @@ public class NodeManager {
         this.statusLock = new ReentrantLock();
         this.nodesIPLock = new ReentrantLock();
 
+        //List<String> l = new ArrayList<>();
+        //l.add("O2");
+        //this.nodesStatus.put("O1", new ArrayList<>());
+
         this.loadTopologyConfig();
-        this.buildGraph();
+        //this.changeStatus("O1", )
+        //this.buildGraph();
     }
 
     public boolean isOnline(String nodeId) {
@@ -92,6 +97,9 @@ public class NodeManager {
             if (this.nodesStatus.containsKey(nodeId)) {
                 this.nodesStatus.remove(nodeId);
 
+                if(this.playerClients.contains(nodeId))
+                    this.playerClients.remove(nodeId);
+
                 for (String s : onlineNeighbours)
                     this.nodesStatus.get(s).remove(nodeId);
 
@@ -124,8 +132,6 @@ public class NodeManager {
             /*
                 For each neighbour of the changed node, send an updated list of their respective neighbours
             */
-            //neighbours.add("O7");
-            //this.setNodeIP("O7", InetAddress.getByName("localhost"));
             for (String n : neighbours) {
                 List<String> newNeighboursList = this.nodesStatus.get(n);
                 Map<String, InetAddress> newNeighbours = new HashMap<>();
@@ -171,7 +177,7 @@ public class NodeManager {
             } catch (IOException e) {
                 e.printStackTrace();
             }
-            setRoutingTable();
+            updateRoutingTable();
             System.out.println("[MASTER] Node " + nodeId + " went offline");
         }, 7, TimeUnit.SECONDS));
     }
@@ -213,7 +219,7 @@ public class NodeManager {
         List<String> activeClients = getClients();
         if(activeClients.size() > 0)
             for(String client : activeClients){
-                List<String> client_path = getShortestPath(Constants.SERVER_ID, client);
+                List<String> client_path = this.getShortestPath(Constants.SERVER_ID, client);
                 all_paths.put(client, client_path);
             }
         return all_paths;
@@ -240,7 +246,7 @@ public class NodeManager {
         return all_flows;
     }
 
-    public void setRoutingTable(){
+    public void updateRoutingTable(){
        this.routingTable = buildFlows(getPaths());
     }
 
