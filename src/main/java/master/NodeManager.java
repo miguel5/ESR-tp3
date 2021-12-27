@@ -132,8 +132,6 @@ public class NodeManager {
             /*
                 For each neighbour of the changed node, send an updated list of their respective neighbours
             */
-            //neighbours.add("O7");
-            //this.setNodeIP("O7", InetAddress.getByName("localhost"));
             for (String n : neighbours) {
                 List<String> newNeighboursList = this.nodesStatus.get(n);
                 Map<String, InetAddress> newNeighbours = new HashMap<>();

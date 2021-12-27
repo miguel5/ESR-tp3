@@ -32,7 +32,6 @@ public class Streamer extends JFrame implements ActionListener, Runnable {
     DatagramPacket senddp; //UDP packet containing the video frames (to send)A
     DatagramSocket RTPsocket; //socket to be used to send and receive UDP packet
     int RTP_dest_port = Constants.STREAMING_PORT; //destination port for RTP packets
-    InetAddress ClientIPAddr; //Client IP address
 
     static String VideoFileName; //video file to request to the server
 
