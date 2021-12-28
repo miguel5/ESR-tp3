@@ -25,7 +25,7 @@ public class TaskRunner implements Runnable {
         this.nm = nm;
 
         // TODO: Get a more permanent solution to set the server online
-        nm.setNodeIP(Constants.SERVER_ID, InetAddress.getByName("10.0.0.10"));
+        nm.setNodeIP(Constants.SERVER_ID, InetAddress.getByName("10.0.2.10"));
         this.nm.changeStatus(Constants.SERVER_ID, neighboursSocket, false);
     }
 
@@ -53,6 +53,7 @@ public class TaskRunner implements Runnable {
                         nm.setNodeIP(nodeId, incomingPacket.getAddress());
                         nm.changeStatus(nodeId, neighboursSocket, isClient);
 
+                        /*
                         // set routing table when keep alive packets are coming
                         nm.updateRoutingTable();
 
@@ -71,9 +72,11 @@ public class TaskRunner implements Runnable {
 
                         DatagramPacket packet = new DatagramPacket(x,x.length, incomingPacket.getAddress(), Constants.NEIGHBOURS_PORT);
                         this.neighboursSocket.send(packet);
+                         */
                     }
                 }
             } catch(Exception e) {
+                e.printStackTrace();
                 log.error(e);
             }
         }

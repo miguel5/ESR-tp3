@@ -23,6 +23,8 @@ import org.jgrapht.graph.*;
 
 import org.apache.logging.log4j.Logger;
 
+import javax.xml.crypto.Data;
+
 public class NodeManager {
     private Map<String, List<String>> topology;
     private Map<String, List<String>> nodesStatus;
@@ -94,6 +96,7 @@ public class NodeManager {
 
             // Node going offline
             if (this.nodesStatus.containsKey(nodeId)) {
+                log.debug("Going offline");
                 this.nodesStatus.remove(nodeId);
 
                 if(this.playerClients.contains(nodeId))
@@ -106,20 +109,49 @@ public class NodeManager {
             }
             // Node going online
             else {
+                log.debug("Going online");
                 if(isClient)
                     this.playerClients.add(nodeId);
                 this.nodesStatus.put(nodeId, onlineNeighbours);
                 status = true;
             }
 
+            log.debug("nodeId: " + nodeId);
+            log.debug("onlineNeighbours: " + onlineNeighbours);
+            log.debug("allNeighbours: " + allNeighbours.toString());
+
             // Rebuild the graph
             this.buildGraph();
 
-            this.sendUpdatedNeighbours(socket, onlineNeighbours);
+            //this.sendUpdatedNeighbours(socket, onlineNeighbours);
+
+            // set routing table when keep alive packets are coming
+            this.updateRoutingTable();
+
+            /*
+                Node going online
+                Send to every neighbour and to the node itself
+             */
+            if(status){
+                log.debug("before add: " + this.nodesStatus.toString());
+                //onlineNeighbours.add(nodeId);
+                sendNewFlows(socket, Arrays.asList(new String[]{nodeId}));
+                log.debug("after add: " + this.nodesStatus.toString());
+                sendNewFlows(socket, onlineNeighbours);
+                log.debug("after sendNewFlows: " + this.nodesStatus.toString());
+            }
+            /*
+                Node going offline
+                Send only to its former neighbours
+             */
+            else
+                sendNewFlows(socket, onlineNeighbours);
         }
         finally {
             this.statusLock.unlock();
         }
+
+        log.debug("NodesStatus(after): " + this.nodesStatus.toString());
 
         return status;
     }
@@ -144,6 +176,27 @@ public class NodeManager {
                         x, x.length, nodesIPs.get(n), Constants.NEIGHBOURS_PORT);
                 socket.send(datagramPacket);
             }
+    }
+
+    private void sendNewFlows(DatagramSocket socket, List<String> nodes) throws IOException{
+
+        for (String n : nodes) {
+            // routing table is done, so send the neighbours (flows) to nodeId
+            Map<String, InetAddress> node_flows = new HashMap<>();
+            if(this.getRoutingTable().containsKey(n)){
+                for(String s : this.getRoutingTable().get(n)){
+                    node_flows.put(s, this.nodesIPs.get(s));
+                }
+            }
+            NeighboursPacket p = new NeighboursPacket(node_flows);
+
+            byte[] x = new byte[0];
+            x = p.toBytes();
+
+            DatagramPacket packet = new DatagramPacket(x,x.length, this.nodesIPs.get(n), Constants.NEIGHBOURS_PORT);
+            socket.send(packet);
+        }
+
     }
 
     public List<String> getNeighbours(String nodeId) {
@@ -203,17 +256,6 @@ public class NodeManager {
         }
         return DijkstraShortestPath.findPathBetween(this.graph, from, to).getVertexList();
     }
-
-    /*
-    public List<String> get_clients(){
-        List<String> client_list = new ArrayList<>();
-        for(Map.Entry<String, Pair<Boolean, List<String>>> entry : nodesStatus.entrySet()){
-            // if it's a streaming client, add it
-            if(entry.getValue().getFirst()) client_list.add(entry.getKey());
-        }
-        return client_list;
-    }
-     */
 
     public List<String> getClients(){
         return new ArrayList<>(this.playerClients);

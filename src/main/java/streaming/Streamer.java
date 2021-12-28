@@ -128,7 +128,7 @@ public class Streamer extends JFrame implements ActionListener, Runnable {
                         InetAddress clientIP = nm.getNodesIPs().get(destination);
                         senddp = new DatagramPacket(packet_bits, packet_length, clientIP, RTP_dest_port);
                         RTPsocket.send(senddp);
-                        log.debug("Send frame #" + imagenb);
+                        //log.debug("Send frame #" + imagenb);
                         //print the header bitstream
                         //rtp_packet.printheader();
 

@@ -1,5 +1,7 @@
 package streaming;
 
+import master.Constants;
+
 import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
@@ -58,7 +60,7 @@ public class StreamRelay {
 
     public Map<String, InetAddress> getFlows() {
         try {
-            this.flowsLock.unlock();
+            this.flowsLock.lock();
             return flows;
         }
         finally {
@@ -69,6 +71,7 @@ public class StreamRelay {
     public void relay(DatagramPacket packet) throws IOException {
         for(InetAddress address : this.getFlows().values()){
             packet.setAddress(address);
+            packet.setPort(Constants.STREAMING_PORT);
             this.socket.send(packet);
         }
     }

@@ -163,13 +163,13 @@ public class Client implements Runnable {
             log.error(ex);
             ex.printStackTrace();
           }
-        });
+        }).start();
 
         //create an RTPpacket object from the DP
         RTPpacket rtp_packet = new RTPpacket(rcvdp.getData(), rcvdp.getLength());
 
         //print important header fields of the RTP packet received:
-        log.info("Got RTP packet with SeqNum # "+rtp_packet.getsequencenumber()+" TimeStamp "+rtp_packet.gettimestamp()+" ms, of type "+rtp_packet.getpayloadtype());
+        //log.info("Got RTP packet with SeqNum # "+rtp_packet.getsequencenumber()+" TimeStamp "+rtp_packet.gettimestamp()+" ms, of type "+rtp_packet.getpayloadtype());
 
         //print header bitstream:
         //rtp_packet.printheader();
