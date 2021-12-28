@@ -9,6 +9,8 @@ package streaming;
 
 import master.Constants;
 import master.NodeManager;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import java.io.*;
 import java.net.*;
@@ -22,6 +24,8 @@ import javax.swing.Timer;
 
 public class Streamer extends JFrame implements ActionListener, Runnable {
     NodeManager nm;
+
+    Logger log = LogManager.getLogger(streaming.Streamer.class);
 
     //GUI:
     //----------------
@@ -49,13 +53,13 @@ public class Streamer extends JFrame implements ActionListener, Runnable {
     //--------------------------
     //Constructor
     //--------------------------
-    public Streamer(String video_file_name, NodeManager nm) {
+    public Streamer(String videoFileName, NodeManager nm) {
         this.nm = nm;
 
         //init Frame
         new JFrame("Server");
 
-        this.VideoFileName = video_file_name;
+        this.VideoFileName = videoFileName;
 
         // init para a parte do servidor
         sTimer = new Timer(FRAME_PERIOD, this); //init Timer para servidor
@@ -66,12 +70,12 @@ public class Streamer extends JFrame implements ActionListener, Runnable {
         try {
             RTPsocket = new DatagramSocket(); //init RTP socket
             video = new VideoStream(VideoFileName); //init the VideoStream object:
-            System.out.println("Servidor: vai enviar video da file " + VideoFileName);
+            log.info("Sending file: " + VideoFileName);
 
         } catch (SocketException e) {
-            System.out.println("Servidor: erro no socket: " + e.getMessage());
+            log.error(e);
         } catch (Exception e) {
-            System.out.println("Servidor: erro no video: " + e.getMessage());
+            log.error(e);
         }
 
         //Handler to close the main window
@@ -124,9 +128,9 @@ public class Streamer extends JFrame implements ActionListener, Runnable {
                         InetAddress clientIP = nm.getNodesIPs().get(destination);
                         senddp = new DatagramPacket(packet_bits, packet_length, clientIP, RTP_dest_port);
                         RTPsocket.send(senddp);
-                        System.out.println("Send frame #" + imagenb);
+                        log.debug("Send frame #" + imagenb);
                         //print the header bitstream
-                        rtp_packet.printheader();
+                        //rtp_packet.printheader();
 
                     }
 
@@ -136,7 +140,7 @@ public class Streamer extends JFrame implements ActionListener, Runnable {
             }
             catch(Exception ex)
             {
-                System.out.println("Exception caught: "+ex);
+                log.fatal(ex);
                 System.exit(0);
             }
         }
@@ -153,16 +157,15 @@ public class Streamer extends JFrame implements ActionListener, Runnable {
     //------------------------------------
     public void run() {
         //get video filename to request:
-        VideoFileName = "src/main/resources/movie.Mjpeg";
+        //VideoFileName = "src/main/resources/movie.Mjpeg";
 
         File f = new File(VideoFileName);
         if (f.exists()) {
-            //Create a Main object
             Streamer s = new Streamer(VideoFileName, nm);
             //show GUI: (opcional!)
             //s.pack();
             //s.setVisible(true);
         } else
-            System.out.println("Ficheiro de video não existe: " + VideoFileName);
+            log.error("Video file not found: " + VideoFileName);
     }
 }

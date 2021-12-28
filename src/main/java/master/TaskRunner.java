@@ -1,5 +1,8 @@
 package master;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
@@ -13,6 +16,7 @@ public class TaskRunner implements Runnable {
     private DatagramSocket neighboursSocket;
     private DatagramSocket streamingSocket;
     private NodeManager nm;
+    final static Logger log = LogManager.getLogger(NodeManager.class);
 
     public TaskRunner(NodeManager nm) throws IOException {
         this.keepAliveSocket = new DatagramSocket(Constants.KEEP_ALIVE_PORT);
@@ -41,10 +45,10 @@ public class TaskRunner implements Runnable {
                     if (nm.isOnline(nodeId)){
                         // reset timer
                         this.nm.startCountdown(nodeId, neighboursSocket, isClient);
-                        System.out.println("[MASTER] Node " + nodeId + " is Online");
+                        log.info("[MASTER] Node " + nodeId + " is Online");
                     }
                     else{
-                        System.out.println("[MASTER] Node " + nodeId + " woke up");
+                        log.info("[MASTER] Node " + nodeId + " woke up");
 
                         nm.setNodeIP(nodeId, incomingPacket.getAddress());
                         nm.changeStatus(nodeId, neighboursSocket, isClient);
@@ -70,8 +74,7 @@ public class TaskRunner implements Runnable {
                     }
                 }
             } catch(Exception e) {
-                System.out.println(e.getMessage());
-                e.printStackTrace();
+                log.error(e);
             }
         }
     }

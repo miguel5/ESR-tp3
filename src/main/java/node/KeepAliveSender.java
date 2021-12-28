@@ -2,6 +2,8 @@ package node;
 
 import master.Constants;
 import master.KeepAlivePacket;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import java.io.IOException;
 import java.net.*;
@@ -12,6 +14,7 @@ public class KeepAliveSender implements Runnable{
     private String nodeId;
     private String bootstrapper;
     private Boolean is_client;
+    final static Logger log = LogManager.getLogger(KeepAliveSender.class);
 
     public KeepAliveSender(String nodeId, String bootstrapper, Boolean isClient) throws SocketException {
         this.datagramSocket = new DatagramSocket();
@@ -36,6 +39,7 @@ public class KeepAliveSender implements Runnable{
                 this.datagramSocket.send(packet);
 
         } catch (IOException e) {
+            log.error(e);
             e.printStackTrace();
         }
     }

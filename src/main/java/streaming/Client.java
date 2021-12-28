@@ -9,16 +9,19 @@ package streaming;
 ---------------------- */
 
 import master.Constants;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import java.io.*;
 import java.net.*;
-import java.util.*;
 import java.awt.*;
 import java.awt.event.*;
 import javax.swing.*;
 import javax.swing.Timer;
 
-public class Cliente implements Runnable {
+public class Client implements Runnable {
+
+  Logger log = LogManager.getLogger(Client.class);
 
   //GUI
   //----
@@ -46,7 +49,7 @@ public class Cliente implements Runnable {
   //--------------------------
   //Constructor
   //--------------------------
-  public Cliente(StreamRelay sr) {
+  public Client(StreamRelay sr) {
 
     this.sr = sr;
 
@@ -98,7 +101,7 @@ public class Cliente implements Runnable {
       RTPsocket = sr.getSocket();
       RTPsocket.setSoTimeout(5000); // setimeout to 5s
     } catch (SocketException e) {
-        System.out.println("Cliente: erro no socket: " + e.getMessage());
+        log.error(e);
     }
   }
 
@@ -108,7 +111,7 @@ public class Cliente implements Runnable {
 
   @Override
   public void run() {
-    Cliente t = new Cliente((this.sr));
+    Client t = new Client((this.sr));
   }
 
 
@@ -120,23 +123,22 @@ public class Cliente implements Runnable {
   //-----------------------
   class playButtonListener implements ActionListener {
     public void actionPerformed(ActionEvent e){
-
-    System.out.println("Play Button pressed !"); 
-	      //start the timers ... 
-	      cTimer.start();
-	    }
+      log.trace("Play Button pressed !");
+      //start the timers ...
+      cTimer.start();
+    }
   }
 
   //Handler for tear button
   //-----------------------
   class tearButtonListener implements ActionListener {
-      public void actionPerformed(ActionEvent e){
-          System.out.println("Teardown Button pressed !");
-          //stop the timer
-          cTimer.stop();
-          //exit
-          System.exit(0);
-      }
+    public void actionPerformed(ActionEvent e){
+      log.trace("Teardown Button pressed !");
+      //stop the timer
+      cTimer.stop();
+      //exit
+      System.exit(0);
+    }
   }
 
   //------------------------------------
@@ -158,6 +160,7 @@ public class Cliente implements Runnable {
           try {
             sr.relay(rcvdp);
           } catch (IOException ex) {
+            log.error(ex);
             ex.printStackTrace();
           }
         });
@@ -166,10 +169,10 @@ public class Cliente implements Runnable {
         RTPpacket rtp_packet = new RTPpacket(rcvdp.getData(), rcvdp.getLength());
 
         //print important header fields of the RTP packet received:
-        System.out.println("Got RTP packet with SeqNum # "+rtp_packet.getsequencenumber()+" TimeStamp "+rtp_packet.gettimestamp()+" ms, of type "+rtp_packet.getpayloadtype());
+        log.info("Got RTP packet with SeqNum # "+rtp_packet.getsequencenumber()+" TimeStamp "+rtp_packet.gettimestamp()+" ms, of type "+rtp_packet.getpayloadtype());
 
         //print header bitstream:
-        rtp_packet.printheader();
+        //rtp_packet.printheader();
 
         //get the payload bitstream from the RTPpacket object
         int payload_length = rtp_packet.getpayload_length();
@@ -185,10 +188,10 @@ public class Cliente implements Runnable {
         iconLabel.setIcon(icon);
       }
       catch (InterruptedIOException iioe){
-	    System.out.println("Nothing to read");
+	    log.info("Nothing to read");
       }
       catch (IOException ioe) {
-	    System.out.println("Exception caught: "+ioe);
+	    log.error(ioe);
       }
     }
   }

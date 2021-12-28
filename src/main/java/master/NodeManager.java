@@ -15,9 +15,13 @@ import java.util.concurrent.locks.ReentrantLock;
 import com.google.gson.Gson;
 import com.google.gson.stream.JsonReader;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.jgrapht.Graph;
 import org.jgrapht.alg.shortestpath.DijkstraShortestPath;
 import org.jgrapht.graph.*;
+
+import org.apache.logging.log4j.Logger;
 
 public class NodeManager {
     private Map<String, List<String>> topology;
@@ -28,6 +32,7 @@ public class NodeManager {
     private Graph<String, DefaultEdge> graph;
     private Map<String, Set<String>> routingTable;
     private Lock statusLock, nodesIPLock;
+    final static Logger log = LogManager.getLogger(NodeManager.class);
 
     public NodeManager() throws FileNotFoundException {
         this.topology = new HashMap<>();
@@ -40,13 +45,7 @@ public class NodeManager {
         this.statusLock = new ReentrantLock();
         this.nodesIPLock = new ReentrantLock();
 
-        //List<String> l = new ArrayList<>();
-        //l.add("O2");
-        //this.nodesStatus.put("O1", new ArrayList<>());
-
         this.loadTopologyConfig();
-        //this.changeStatus("O1", )
-        //this.buildGraph();
     }
 
     public boolean isOnline(String nodeId) {
@@ -175,10 +174,10 @@ public class NodeManager {
             try {
                 changeStatus(nodeId, socket, isClient);
             } catch (IOException e) {
-                e.printStackTrace();
+                log.error(e);
             }
             updateRoutingTable();
-            System.out.println("[MASTER] Node " + nodeId + " went offline");
+            log.info("Node " + nodeId + " went offline");
         }, 7, TimeUnit.SECONDS));
     }
 
@@ -196,6 +195,12 @@ public class NodeManager {
     }
 
     private List<String> getShortestPath(String from, String to){
+        List<String> path = DijkstraShortestPath.findPathBetween(this.graph, from, to).getVertexList();
+
+        if(path == null){
+            return new ArrayList<>();
+
+        }
         return DijkstraShortestPath.findPathBetween(this.graph, from, to).getVertexList();
     }
 

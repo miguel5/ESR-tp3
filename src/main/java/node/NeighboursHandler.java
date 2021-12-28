@@ -2,6 +2,8 @@ package node;
 
 import master.Constants;
 import master.NeighboursPacket;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import streaming.StreamRelay;
 
 import java.net.DatagramPacket;
@@ -12,6 +14,7 @@ public class NeighboursHandler implements Runnable {
 
     private DatagramSocket datagramSocket;
     private StreamRelay sr;
+    final static Logger log = LogManager.getLogger(NeighboursHandler.class);
 
     public NeighboursHandler(StreamRelay sr, DatagramSocket datagramSocket) throws SocketException {
         this.datagramSocket = datagramSocket;
@@ -29,10 +32,10 @@ public class NeighboursHandler implements Runnable {
                 if(incomingPacket != null){
                     NeighboursPacket neighboursPacket = NeighboursPacket.bytesToObject(incomingPacket.getData());
                     sr.setFlows(neighboursPacket.getNeighbours());
-                    System.out.println("[NODE] " + neighboursPacket.getNeighbours().toString());
+                    log.debug("Neighbours (NodeID : IP): " + neighboursPacket.getNeighbours().toString());
                 }
             } catch(Exception e) {
-                System.out.println(e.getMessage());
+                log.error(e);
             }
         }
     }

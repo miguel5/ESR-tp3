@@ -1,5 +1,7 @@
 package master;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import streaming.Streamer;
 
 import java.net.SocketException;
@@ -7,6 +9,7 @@ import java.net.SocketException;
 public class Main {
     public static String topologyPath = "topology.json";
     public static String videoPath = "movie.Mjpeg";
+    final static Logger log = LogManager.getLogger(master.Main.class);
 
     public static void main(String[] args) throws SocketException {
 
@@ -30,8 +33,7 @@ public class Main {
             }*/
 
         } catch (Exception e) {
-            e.printStackTrace();
-            System.out.println(e.getMessage());
+            log.fatal(e);
             System.exit(0);
         }
     }

@@ -1,7 +1,7 @@
 package node;
 
 import master.Constants;
-import streaming.Cliente;
+import streaming.Client;
 import streaming.StreamRelay;
 
 import java.io.IOException;
@@ -31,7 +31,7 @@ public class Main {
 
         if(isClient)
             /* I'm a client, so I'll receive and forward the stream */
-            new Thread(new Cliente(sr));
+            new Thread(new Client(sr));
         else {
             /* I'm not a client, so I'll just forward stuff */
         }
