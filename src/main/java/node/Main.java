@@ -40,26 +40,28 @@ public class Main {
         else {
             /* I'm not a client, so I'll just forward stuff */
 
-            scheduler.scheduleAtFixedRate((Runnable) () -> {
+            new Thread(() -> {
+                while (true){
+                    byte[] cBuf = new byte[15000];
 
-                byte[] cBuf = new byte[15000];
+                    //Construct a DatagramPacket to receive data from the UDP socket
+                    DatagramPacket rcvdp = new DatagramPacket(cBuf, cBuf.length);
 
-                //Construct a DatagramPacket to receive data from the UDP socket
-                DatagramPacket rcvdp = new DatagramPacket(cBuf, cBuf.length);
+                    try{
+                        //receive the DP from the socket:
+                        streamingSocket.receive(rcvdp);
 
-                try{
-                    //receive the DP from the socket:
-                    streamingSocket.receive(rcvdp);
-
-                    sr.relay(rcvdp);
+                        sr.relay(rcvdp);
+                    }
+                    catch (InterruptedIOException iioe){
+                        log.info("Nothing to read");
+                    }
+                    catch (IOException ioe) {
+                        log.error(ioe);
+                    }
                 }
-                catch (InterruptedIOException iioe){
-                    log.info("Nothing to read");
-                }
-                catch (IOException ioe) {
-                    log.error(ioe);
-                }
-            }, 0, 20, TimeUnit.MILLISECONDS);
+
+            }).start();
         }
     }
 }
