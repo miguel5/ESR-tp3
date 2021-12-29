@@ -20,12 +20,12 @@ public class TaskRunner implements Runnable {
 
     public TaskRunner(NodeManager nm) throws IOException {
         this.keepAliveSocket = new DatagramSocket(Constants.KEEP_ALIVE_PORT);
-        this.neighboursSocket = new DatagramSocket(Constants.NEIGHBOURS_PORT);  // TODO: Change to NEIGHBOURS_PORT and uncomment line below
+        this.neighboursSocket = new DatagramSocket(Constants.NEIGHBOURS_PORT);
         this.streamingSocket = new DatagramSocket(Constants.STREAMING_PORT);
         this.nm = nm;
 
         // TODO: Get a more permanent solution to set the server online
-        nm.setNodeIP(Constants.SERVER_ID, InetAddress.getByName("10.0.2.10"));
+        nm.setNodeIP(Constants.SERVER_ID, InetAddress.getByName("localhost"));
         this.nm.changeStatus(Constants.SERVER_ID, neighboursSocket, false);
     }
 
@@ -52,27 +52,6 @@ public class TaskRunner implements Runnable {
 
                         nm.setNodeIP(nodeId, incomingPacket.getAddress());
                         nm.changeStatus(nodeId, neighboursSocket, isClient);
-
-                        /*
-                        // set routing table when keep alive packets are coming
-                        nm.updateRoutingTable();
-
-                        // routing table is done, so send the neighbours (flows) to nodeId
-                        Map<String, InetAddress> node_flows = new HashMap<>();
-                        if(nm.getRoutingTable().containsKey(nodeId)){
-                            Map<String, InetAddress> nodesIPs = this.nm.getNodesIPs();
-                            for(String s : nm.getRoutingTable().get(nodeId)){
-                                node_flows.put(s, nodesIPs.get(s));
-                            }
-                        }
-                        NeighboursPacket p = new NeighboursPacket(node_flows);
-
-                        byte[] x = new byte[0];
-                        x = p.toBytes();
-
-                        DatagramPacket packet = new DatagramPacket(x,x.length, incomingPacket.getAddress(), Constants.NEIGHBOURS_PORT);
-                        this.neighboursSocket.send(packet);
-                         */
                     }
                 }
             } catch(Exception e) {

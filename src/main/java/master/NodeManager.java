@@ -21,10 +21,6 @@ import org.jgrapht.Graph;
 import org.jgrapht.alg.shortestpath.DijkstraShortestPath;
 import org.jgrapht.graph.*;
 
-import org.apache.logging.log4j.Logger;
-
-import javax.xml.crypto.Data;
-
 public class NodeManager {
     private Map<String, List<String>> topology;
     private Map<String, List<String>> nodesStatus;
@@ -96,7 +92,6 @@ public class NodeManager {
 
             // Node going offline
             if (this.nodesStatus.containsKey(nodeId)) {
-                log.debug("Going offline");
                 this.nodesStatus.remove(nodeId);
 
                 if(this.playerClients.contains(nodeId))
@@ -109,21 +104,14 @@ public class NodeManager {
             }
             // Node going online
             else {
-                log.debug("Going online");
                 if(isClient)
                     this.playerClients.add(nodeId);
                 this.nodesStatus.put(nodeId, onlineNeighbours);
                 status = true;
             }
 
-            log.debug("nodeId: " + nodeId);
-            log.debug("onlineNeighbours: " + onlineNeighbours);
-            log.debug("allNeighbours: " + allNeighbours.toString());
-
             // Rebuild the graph
             this.buildGraph();
-
-            //this.sendUpdatedNeighbours(socket, onlineNeighbours);
 
             // Get nodes that share the same flow with the changed node
             Set<String> sameFlowNodes = this.getNodesFromSameFlows(nodeId);
@@ -136,12 +124,8 @@ public class NodeManager {
                 Send to every neighbour and to the node itself
              */
             if(status){
-                log.debug("before add: " + this.nodesStatus.toString());
-                //onlineNeighbours.add(nodeId);
                 sendNewFlows(socket, Arrays.asList(new String[]{nodeId}));
-                log.debug("after add: " + this.nodesStatus.toString());
                 sendNewFlows(socket, new ArrayList<>(sameFlowNodes));
-                log.debug("after sendNewFlows: " + this.nodesStatus.toString());
             }
             /*
                 Node going offline
@@ -153,34 +137,12 @@ public class NodeManager {
         finally {
             this.statusLock.unlock();
         }
-
-        log.debug("NodesStatus(after): " + this.nodesStatus.toString());
-
         return status;
     }
 
     /*
-        Sends an updated list of neighbours to the given node's neighbours
+        Sends the new flows for the nodes given in the 'nodes' list
      */
-    private void sendUpdatedNeighbours(DatagramSocket socket, List<String> neighbours) throws IOException {
-            /*
-                For each neighbour of the changed node, send an updated list of their respective neighbours
-            */
-            for (String n : neighbours) {
-                List<String> newNeighboursList = this.nodesStatus.get(n);
-                Map<String, InetAddress> newNeighbours = new HashMap<>();
-                for(String s : newNeighboursList){
-                    newNeighbours.put(s, this.nodesIPs.get(s));
-                }
-                NeighboursPacket packet = new NeighboursPacket(newNeighbours);
-                byte[] x = new byte[0];
-                x = packet.toBytes();
-                DatagramPacket datagramPacket = new DatagramPacket(
-                        x, x.length, nodesIPs.get(n), Constants.NEIGHBOURS_PORT);
-                socket.send(datagramPacket);
-            }
-    }
-
     private void sendNewFlows(DatagramSocket socket, List<String> nodes) throws IOException{
 
         for (String n : nodes) {
@@ -247,7 +209,7 @@ public class NodeManager {
             } catch (IOException e) {
                 log.error(e);
             }
-            updateRoutingTable();
+            //updateRoutingTable();
             log.info("Node " + nodeId + " went offline");
         }, 7, TimeUnit.SECONDS));
     }

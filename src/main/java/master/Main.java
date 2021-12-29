@@ -25,13 +25,6 @@ public class Main {
 
             new Thread(() -> new Streamer(videoPath, nm)).start();
 
-            /* debug to check streaming stuff
-            while(true){
-                Thread.sleep(2000);
-                System.out.println("STREAMING CLIENTS: " + nm.getClients());
-                System.out.println("ROUTING TABLE: " + nm.getRoutingTable());
-            }*/
-
         } catch (Exception e) {
             log.fatal(e);
             e.printStackTrace();
