@@ -32,7 +32,7 @@ public class NeighboursHandler implements Runnable {
                 if(incomingPacket != null){
                     NeighboursPacket neighboursPacket = NeighboursPacket.bytesToObject(incomingPacket.getData());
                     sr.setFlows(neighboursPacket.getNeighbours());
-                    log.debug("Neighbours (NodeID : IP): " + neighboursPacket.getNeighbours().toString());
+                    log.debug("Flows (NodeID : IP): " + neighboursPacket.getNeighbours().toString());
                 }
             } catch(Exception e) {
                 log.error(e);
