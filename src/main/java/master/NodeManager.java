@@ -125,6 +125,9 @@ public class NodeManager {
 
             //this.sendUpdatedNeighbours(socket, onlineNeighbours);
 
+            // Get nodes that share the same flow with the changed node
+            Set<String> sameFlowNodes = this.getNodesFromSameFlows(nodeId);
+
             // set routing table when keep alive packets are coming
             this.updateRoutingTable();
 
@@ -137,7 +140,7 @@ public class NodeManager {
                 //onlineNeighbours.add(nodeId);
                 sendNewFlows(socket, Arrays.asList(new String[]{nodeId}));
                 log.debug("after add: " + this.nodesStatus.toString());
-                sendNewFlows(socket, onlineNeighbours);
+                sendNewFlows(socket, new ArrayList<>(sameFlowNodes));
                 log.debug("after sendNewFlows: " + this.nodesStatus.toString());
             }
             /*
@@ -145,7 +148,7 @@ public class NodeManager {
                 Send only to its former neighbours
              */
             else
-                sendNewFlows(socket, onlineNeighbours);
+                sendNewFlows(socket, new ArrayList<>(sameFlowNodes));
         }
         finally {
             this.statusLock.unlock();
@@ -197,6 +200,21 @@ public class NodeManager {
             socket.send(packet);
         }
 
+    }
+
+    // Returns a set of nodes that are in the same flow(s) of the given node
+    private Set<String> getNodesFromSameFlows(String nodeId){
+        Set<String> nodes = new HashSet<>();
+
+        if(this.routingTable.containsKey(nodeId))
+            nodes.addAll(this.routingTable.get(nodeId));
+
+        for(Set<String> flow : this.routingTable.values()){
+            if(flow.contains(nodeId))
+                nodes.addAll(flow);
+        }
+
+        return this.nodesStatus.keySet();
     }
 
     public List<String> getNeighbours(String nodeId) {

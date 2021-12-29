@@ -34,6 +34,7 @@ public class Main {
 
         } catch (Exception e) {
             log.fatal(e);
+            e.printStackTrace();
             System.exit(0);
         }
     }

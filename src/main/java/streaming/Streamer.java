@@ -134,6 +134,11 @@ public class Streamer extends JFrame implements ActionListener, Runnable {
 
                     }
 
+                // Restart video
+                if(imagenb >= VIDEO_LENGTH){
+                    this.imagenb = 0;
+                    video = new VideoStream(VideoFileName);
+                }
 
                 //update GUI
                 //label.setText("Send frame #" + imagenb);
