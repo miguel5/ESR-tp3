@@ -2,6 +2,9 @@ package node;
 
 import master.Constants;
 import master.NeighboursPacket;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import streaming.StreamRelay;
 
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
@@ -10,9 +13,12 @@ import java.net.SocketException;
 public class NeighboursHandler implements Runnable {
 
     private DatagramSocket datagramSocket;
+    private StreamRelay sr;
+    final static Logger log = LogManager.getLogger(NeighboursHandler.class);
 
-    public NeighboursHandler() throws SocketException {
-        this.datagramSocket = new DatagramSocket(Constants.NEIGHBOURS_PORT);
+    public NeighboursHandler(StreamRelay sr, DatagramSocket datagramSocket) throws SocketException {
+        this.datagramSocket = datagramSocket;
+        this.sr = sr;
     }
 
     @Override
@@ -25,10 +31,11 @@ public class NeighboursHandler implements Runnable {
                 this.datagramSocket.receive(incomingPacket);
                 if(incomingPacket != null){
                     NeighboursPacket neighboursPacket = NeighboursPacket.bytesToObject(incomingPacket.getData());
-                    System.out.println("[NODE] " + neighboursPacket.getNeighbours().toString());
+                    sr.setFlows(neighboursPacket.getNeighbours());
+                    log.debug("Neighbours (NodeID : IP): " + neighboursPacket.getNeighbours().toString());
                 }
             } catch(Exception e) {
-                System.out.println(e.getMessage());
+                log.error(e);
             }
         }
     }
